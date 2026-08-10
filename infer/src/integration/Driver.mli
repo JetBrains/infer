@@ -22,6 +22,7 @@ type mode =
   | Clang of {compiler: Clang.compiler; prog: string; args: string list}
   | ClangCompilationDB of {db_files: [`Escaped of string | `Raw of string] list}
   | Erlc of {args: string list}
+  | GoSil of {prog: string; args: string list}
   | Gradle of {prog: string; args: string list}
   | Hackc of {prog: string; args: string list}
   | Javac of {compiler: Javac.compiler; prog: string; args: string list}

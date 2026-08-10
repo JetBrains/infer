@@ -23,6 +23,7 @@ type mode =
   | Clang of {compiler: Clang.compiler; prog: string; args: string list}
   | ClangCompilationDB of {db_files: [`Escaped of string | `Raw of string] list}
   | Erlc of {args: string list}
+  | GoSil of {prog: string; args: string list}
   | Gradle of {prog: string; args: string list}
   | Hackc of {prog: string; args: string list}
   | Javac of {compiler: Javac.compiler; prog: string; args: string list}
@@ -49,6 +50,7 @@ let is_analyze_mode = function Analyze -> true | _ -> false
 
 let is_compatible_with_textual_generation = function
   | Clang _
+  | GoSil _
   | Javac _
   | Llair _
   | Python _
@@ -113,6 +115,8 @@ let pp_mode fmt = function
       F.fprintf fmt "Swift driver mode:@\nprog = '%s' args = %a" prog Pp.cli_args args
   | Erlc {args} ->
       F.fprintf fmt "Erlc driver mode:@\nargs = %a" Pp.cli_args args
+  | GoSil {prog; args} ->
+      F.fprintf fmt "Go driver mode:@\nprog = '%s'@\nargs = %a" prog Pp.cli_args args
   | Hackc {prog; args} ->
       F.fprintf fmt "Hackc driver mode:@\nprog = '%s'@\nargs = %a" prog Pp.cli_args args
   | Textual {textualfiles} -> (
@@ -246,6 +250,9 @@ let capture ~changed_files mode =
       | Erlc {args} ->
           L.progress "Capturing in erlc mode...@." ;
           Erlang.capture ~command:"erlc" ~args
+      | GoSil {prog; args} ->
+          L.progress "Capturing in go mode...@." ;
+          Go.capture ~prog ~args
       | Hackc {prog; args} ->
           L.progress "Capturing in hackc mode...@." ;
           Hack.capture ~prog ~args
@@ -468,6 +475,9 @@ let assert_supported_build_system build_system =
       Config.string_of_build_system build_system |> assert_supported_mode `Swift
   | BErlc ->
       Config.string_of_build_system build_system |> assert_supported_mode `Erlang
+  | BGo ->
+      (* the Go frontend is an external translator producing Textual, which is always built in *)
+      ()
   | BHackc ->
       Config.string_of_build_system build_system |> assert_supported_mode `Hack
   | BPython ->
@@ -580,6 +590,8 @@ let mode_of_build_command build_cmd (buck_mode : BuckMode.t option) =
           Swiftc {prog; args}
       | BErlc ->
           Erlc {args}
+      | BGo ->
+          GoSil {prog; args}
       | BHackc ->
           Hackc {prog; args}
       | BPython ->

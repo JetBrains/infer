@@ -18,6 +18,7 @@ type build_system =
   | BBuck2
   | BClang
   | BErlc
+  | BGo
   | BGradle
   | BHackc
   | BJava

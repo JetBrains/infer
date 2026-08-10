@@ -22,6 +22,7 @@ type build_system =
   | BBuck2
   | BClang
   | BErlc
+  | BGo
   | BGradle
   | BHackc
   | BJava
@@ -70,6 +71,7 @@ let build_system_exe_assoc =
   [ (BAnt, "ant")
   ; (BBuck2, "buck")
   ; (BBuck2, "buck2")
+  ; (BGo, "go2sil")
   ; (BGradle, "gradle")
   ; (BGradle, "gradlew")
   ; (BJava, "java")

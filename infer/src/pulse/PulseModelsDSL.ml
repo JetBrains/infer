@@ -704,7 +704,7 @@ module Syntax = struct
         let proc_name = Procdesc.get_proc_name model_data.analysis_data.proc_desc in
         if
           Procname.is_java proc_name || Procname.is_csharp proc_name || Procname.is_hack proc_name
-          || Procname.is_python proc_name
+          || Procname.is_python proc_name || Procname.is_go proc_name
         then
           Basic.alloc_no_leak_not_null ~initialize:true (Some type_name) ~desc:"new" model_data
             astate
