@@ -239,7 +239,7 @@ let is_container_read tenv pn =
      treatment between std::map::operator[] and all other operator[]. *)
   | ObjC_Cpp _ | C _ | Rust _ ->
       (not (is_cpp_container_write pn)) && is_cpp_container_read pn
-  | Erlang _ | Hack _ | Block _ | Python _ | Swift _ ->
+  | Erlang _ | Go _ | Hack _ | Block _ | Python _ | Swift _ ->
       false
 
 

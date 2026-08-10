@@ -307,7 +307,7 @@ module Topl = struct
           { annot_pattern= None
           ; procedure_name_regex= ToplAst.mk_regex false pattern
           ; type_regexes= None }
-    | Clang | CIL | Hack | Python | Java | Rust | Swift ->
+    | Clang | CIL | Go | Hack | Python | Java | Rust | Swift ->
         L.die InternalError "Unsupported language for data flow queries"
 
 

@@ -55,6 +55,8 @@ let pp_with_base pp_base fmt (base, accesses) =
     match (accesses, Language.get_language ()) with
     | _, Erlang ->
         L.internal_error "Erlang not supported@\n"
+    | _, Go ->
+        L.internal_error "Go not supported@\n"
     | _, Hack ->
         L.internal_error "Hack not supported@\n"
     | _, Python ->
@@ -78,6 +80,8 @@ let pp_with_base pp_base fmt (base, accesses) =
               "."
           | Erlang ->
               L.die InternalError "Erlang not supported"
+          | Go ->
+              L.die InternalError "Go not supported"
           | Hack ->
               L.die InternalError "Hack not supported"
           | Python ->

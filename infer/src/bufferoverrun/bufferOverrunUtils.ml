@@ -93,6 +93,8 @@ module Exec = struct
             Dom.Val.of_java_array_alloc allocsite ~length:size ~traces
         | Language.Erlang ->
             L.die InternalError "Erlang not supported"
+        | Language.Go ->
+            L.die InternalError "Go not supported"
         | Language.Hack ->
             L.die InternalError "Hack not supported"
         | Language.Python ->

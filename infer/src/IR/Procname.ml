@@ -596,6 +596,7 @@ type t =
   | C of C.t
   | CSharp of CSharp.t
   | Erlang of Erlang.t
+  | Go of C.t (* we might want to refine that later *)
   | Hack of Hack.t
   | Java of Java.t
   | ObjC_Cpp of ObjC_Cpp.t
@@ -662,6 +663,12 @@ let compare_name x y =
   | Erlang _, _ ->
       -1
   | _, Erlang _ ->
+      1
+  | Go {c_name= name1}, Go {c_name= name2} ->
+      QualifiedCppName.compare_name name1 name2
+  | Go _, _ ->
+      -1
+  | _, Go _ ->
       1
   | Hack name1, Hack name2 ->
       Hack.compare name1 name2
@@ -735,7 +742,7 @@ let is_java_autogen_method = is_java_lift Java.is_autogen_method
 let on_objc_helper ~f ~default = function
   | ObjC_Cpp objc_cpp_pname ->
       f objc_cpp_pname
-  | Block _ | C _ | CSharp _ | Erlang _ | Hack _ | Java _ | Python _ | Rust _ | Swift _ ->
+  | Block _ | C _ | CSharp _ | Erlang _ | Go _ | Hack _ | Java _ | Python _ | Rust _ | Swift _ ->
       default
 
 
@@ -808,6 +815,7 @@ let replace_class t ?(arity_incr = 0) (new_class : Typ.Name.t) =
       Python (Regular {module_name; function_name})
   | Python (Builtin _)
   | Rust _ (* we might want to change this choice when dealing with virtual call later *)
+  | Go _
   | C _
   | Block _
   | Erlang _ ->
@@ -834,7 +842,7 @@ let get_class_type_name t =
       PythonProcname.get_module_type_name python
   | Swift (ClassMethod swift) ->
       Some swift.class_name
-  | C _ | Rust _ | Erlang _ | Swift (Function _) | Swift (Builtin _) ->
+  | C _ | Go _ | Rust _ | Erlang _ | Swift (Function _) | Swift (Builtin _) ->
       None
 
 
@@ -854,7 +862,7 @@ let get_class_name t =
       Some (PythonProcname.get_module_name_as_a_string py_pname)
   | Swift (ClassMethod swift) ->
       Some (Typ.Name.name swift.class_name)
-  | C _ | Rust _ | Erlang _ | Swift (Function _) | Swift (Builtin _) ->
+  | C _ | Go _ | Rust _ | Erlang _ | Swift (Function _) | Swift (Builtin _) ->
       None
 
 
@@ -862,7 +870,7 @@ let objc_cpp_replace_method_name t (new_method_name : string) =
   match t with
   | ObjC_Cpp osig ->
       ObjC_Cpp {osig with method_name= new_method_name}
-  | C _ | CSharp _ | Block _ | Erlang _ | Hack _ | Java _ | Python _ | Rust _ | Swift _ ->
+  | C _ | CSharp _ | Block _ | Erlang _ | Go _ | Hack _ | Java _ | Python _ | Rust _ | Swift _ ->
       t
 
 
@@ -870,7 +878,7 @@ let objc_cpp_replace_method_name t (new_method_name : string) =
 let get_method = function
   | ObjC_Cpp name ->
       name.method_name
-  | C {c_name} | Rust {c_name} ->
+  | C {c_name} | Go {c_name} | Rust {c_name} ->
       QualifiedCppName.to_qual_string c_name
   | Erlang name ->
       name.function_name
@@ -902,7 +910,7 @@ let is_cpp_method t =
   match t with
   | ObjC_Cpp cpp_pname ->
       ObjC_Cpp.is_cpp_method cpp_pname
-  | C _ | Rust _ | Erlang _ | Hack _ | Block _ | Java _ | CSharp _ | Python _ | Swift _ ->
+  | C _ | Go _ | Rust _ | Erlang _ | Hack _ | Block _ | Java _ | CSharp _ | Python _ | Swift _ ->
       false
 
 
@@ -926,6 +934,8 @@ let get_language = function
       Language.Python
   | Rust _ ->
       Language.Rust
+  | Go _ ->
+      Language.Go
   | Swift _ ->
       Language.Swift
 
@@ -953,6 +963,7 @@ let is_static = function
   | C _
   | Block _
   | Erlang _
+  | Go _
   | Hack _
   | ObjC_Cpp {kind= CPPMethod _ | CPPConstructor _ | CPPDestructor _}
   | Python _
@@ -1063,6 +1074,8 @@ let pp_unique_id fmt = function
       Block.pp Verbose fmt bsig
   | Python h ->
       PythonProcname.pp fmt h
+  | Go osig ->
+      C.pp Verbose fmt osig
   | Rust osig ->
       C.pp Verbose fmt osig
   | Swift osig ->
@@ -1089,6 +1102,8 @@ let pp_with_verbosity verbosity fmt = function
       Block.pp verbosity fmt bsig
   | Python h ->
       PythonProcname.pp fmt h
+  | Go osig ->
+      C.pp verbosity fmt osig
   | Rust osig ->
       C.pp verbosity fmt osig
   | Swift osig ->
@@ -1134,6 +1149,8 @@ let pp_fullname_only fmt = function
       Block.pp FullNameOnly fmt bsig
   | Python h ->
       PythonProcname.pp fmt h
+  | Go osig ->
+      C.pp FullNameOnly fmt osig
   | Rust osig ->
       C.pp FullNameOnly fmt osig
   | Swift osig ->
@@ -1157,6 +1174,8 @@ let pp_name_only fmt = function
       Block.pp NameOnly fmt bsig
   | Python h ->
       PythonProcname.pp fmt h
+  | Go osig ->
+      C.pp NameOnly fmt osig
   | Rust osig ->
       C.pp NameOnly fmt osig
   | Swift osig ->
@@ -1186,6 +1205,8 @@ let pp_simplified_string ?(withclass = false) fmt = function
       Block.pp Simple fmt bsig
   | Python h ->
       PythonProcname.pp fmt h
+  | Go osig ->
+      C.pp Simple fmt osig
   | Rust osig ->
       C.pp Simple fmt osig
   | Swift osig ->
@@ -1248,7 +1269,7 @@ let get_parameters procname =
       List.map ~f:(fun par -> Parameter.JavaParameter par) (Java.get_parameters j)
   | CSharp cs ->
       List.map ~f:(fun par -> Parameter.CSharpParameter par) (CSharp.get_parameters cs)
-  | C _ | Rust _ ->
+  | C _ | Go _ | Rust _ ->
       []
   | Erlang e ->
       List.init e.arity ~f:(fun _ -> Parameter.ErlangParameter)
@@ -1266,7 +1287,7 @@ let get_parameters procname =
 
 let describe f pn =
   match pn with
-  | Block _ | C _ | Rust _ | Erlang _ | Hack _ | Python _ | ObjC_Cpp _ | Swift _ ->
+  | Block _ | C _ | Go _ | Rust _ | Erlang _ | Hack _ | Python _ | ObjC_Cpp _ | Swift _ ->
       F.fprintf f "%a()" pp_without_templates pn
   | CSharp _ | Java _ ->
       F.pp_print_string f (hashable_name pn)

@@ -175,6 +175,7 @@ let all_checkers =
          in
          [ (pulse, Clang)
          ; (pulse, Erlang)
+         ; (pulse, Go)
          ; (pulse, Hack)
          ; (pulse, Java)
          ; (pulse, CIL)

@@ -6,12 +6,13 @@
  *)
 open! IStd
 
-type t = Clang | CIL | Erlang | Hack | Java | Python | Rust | Swift
+type t = Clang | CIL | Erlang | Go | Hack | Java | Python | Rust | Swift
 [@@deriving compare, enumerate, equal]
 
 let language_to_string =
   [ (Clang, "C/C++/ObjC")
   ; (Erlang, "Erlang")
+  ; (Go, "Go")
   ; (Hack, "Hack")
   ; (Java, "Java")
   ; (CIL, "C#/.Net")
@@ -38,5 +39,5 @@ let supports_pointer_arithmetic = function
       true
   | Rust ->
       true
-  | Erlang | Hack | Java | Python | Swift ->
+  | Erlang | Go | Hack | Java | Python | Swift ->
       false

@@ -956,7 +956,7 @@ module Syntax = struct
         L.die InternalError "DSL.call not supported on Java/C"
     | Swift ->
         TextualSil.swift_mixed_type_name
-    | Rust | ObjectiveC ->
+    | Go | Rust | ObjectiveC ->
         L.die InternalError "<NOT YET SUPPORTED>"
 
 

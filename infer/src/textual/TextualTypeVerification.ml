@@ -94,6 +94,11 @@ let rec compat lang ~assigned:(t1 : Typ.t) ~given:(t2 : Typ.t) =
       else compat lang ~assigned:t1 ~given:t2
   | Ptr _, Null ->
       true
+  | (Int, Null | Null, Int) when Textual.Lang.is_go lang ->
+      (* Go frontend: [nil] may appear as an operand of the __sil_* comparison builtins, which
+         are typed (int, int) -> int. [Null] lowers to the SIL constant 0 anyway, so this is
+         sound. *)
+      true
   | Struct _, Struct _ ->
       true (* no subtyping check yet *)
   | Array t1, Array t2 ->

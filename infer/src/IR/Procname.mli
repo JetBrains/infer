@@ -191,6 +191,7 @@ type t =
   | C of C.t
   | CSharp of CSharp.t
   | Erlang of Erlang.t
+  | Go of C.t
   | Hack of Hack.t
   | Java of Java.t
   | ObjC_Cpp of ObjC_Cpp.t

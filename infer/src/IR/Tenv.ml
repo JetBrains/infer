@@ -420,7 +420,8 @@ module MethodInfo = struct
     match proc_name with
     | Hack _ ->
         HackInfo (Hack.mk_class ~kind proc_name)
-    | Block _ | C _ | Rust _ | CSharp _ | Erlang _ | Java _ | ObjC_Cpp _ | Python _ | Swift _ ->
+    | Block _ | C _ | Go _ | Rust _ | CSharp _ | Erlang _ | Java _ | ObjC_Cpp _ | Python _
+    | Swift _ ->
         DefaultInfo (Default.mk_class proc_name)
 
 

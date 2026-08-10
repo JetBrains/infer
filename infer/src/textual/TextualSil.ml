@@ -150,6 +150,10 @@ module TypeNameBridge = struct
         SilTyp.Name.C.from_string value
     | C, _ ->
         L.die InternalError "to_sil conversion failed on C type name with non-empty args"
+    | Go, [] ->
+        SilTyp.Name.C.from_string value
+    | Go, _ ->
+        L.die InternalError "to_sil conversion failed on Go type name with non-empty args"
     | Rust, _ ->
         SilTyp.Name.C.from_string value
     | Swift, _ ->
@@ -215,6 +219,8 @@ let swift_mixed_type_textual = Typ.Void
 
 let rust_mixed_type_textual = Typ.Void
 
+let go_mixed_type_textual = Typ.Void
+
 let default_return_type (lang : Lang.t) loc =
   match lang with
   | Hack ->
@@ -227,6 +233,8 @@ let default_return_type (lang : Lang.t) loc =
       Typ.mk_ptr swift_mixed_type_textual
   | Rust ->
       Typ.mk_ptr rust_mixed_type_textual
+  | Go ->
+      Typ.mk_ptr go_mixed_type_textual
   | other ->
       L.die InternalError "Unexpected return type outside of Hack/Python/C/Swift: %s"
         (Lang.to_string other)
@@ -234,7 +242,7 @@ let default_return_type (lang : Lang.t) loc =
 
 let wildcard_sil_fieldname lang name =
   match (lang : Lang.t) with
-  | Java | C | ObjectiveC ->
+  | Java | C | Go | ObjectiveC ->
       L.die InternalError "a wildcard fieldname is only supported in Hack, Python or Swift"
   | Hack ->
       SilFieldname.make (HackClass HackClassName.wildcard) name
@@ -305,6 +313,11 @@ module TypBridge = struct
 
 
   let rust_mixed =
+    let void = SilTyp.mk SilTyp.Tvoid in
+    SilTyp.mk_ptr void
+
+
+  let go_mixed =
     let void = SilTyp.mk SilTyp.Tvoid in
     SilTyp.mk_ptr void
 end
@@ -446,6 +459,9 @@ module ProcDeclBridge = struct
     | Rust ->
         SilProcname.Rust (SilProcname.C.from_string t.qualified_name.name.value)
         |> SilStruct.mk_tenv_method
+    | Go ->
+        SilProcname.Go (SilProcname.C.from_string t.qualified_name.name.value)
+        |> SilStruct.mk_tenv_method
     | Swift -> (
         let plain_name = List.find_map ~f:Attr.get_plain_name t.attributes in
         let llvm_offset = List.find_map ~f:Attr.get_method_offset t.attributes in
@@ -505,7 +521,7 @@ module ProcDeclBridge = struct
 
   let call_to_sil (lang : Lang.t) sourcefile (callsig : ProcSig.t) t : SilProcname.t =
     match lang with
-    | Java | Python | C | Rust | Swift | ObjectiveC ->
+    | Java | Python | C | Go | Rust | Swift | ObjectiveC ->
         to_sil lang sourcefile t
     | Hack when Option.is_some t.formals_types ->
         to_sil lang sourcefile t
@@ -916,6 +932,10 @@ module InstrBridge = struct
                     (* Declarations with unknown formals are expected in Rust. Assume that unknown
                        formal types are *void. *)
                     TypBridge.rust_mixed
+                | Lang.Go ->
+                    (* Declarations with unknown formals are expected in Go. Assume that unknown
+                       formal types are *void. *)
+                    TypBridge.go_mixed
                 | other ->
                     L.die InternalError
                       "Unexpected unknown formals outside of Hack/Python/C/Swift: %s"
