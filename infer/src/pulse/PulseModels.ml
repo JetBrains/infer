@@ -38,5 +38,7 @@ let dispatch_builtins proc_name args =
       Some (PulseModelsPython.builtins_matcher builtin args)
   | Procname.Swift (SwiftProcname.Builtin builtin) ->
       Some (PulseModelsSwift.builtins_matcher builtin args)
+  | Procname.Go (GoProcname.Builtin builtin) ->
+      Some (PulseModelsGo.builtins_matcher builtin args)
   | _ ->
       None

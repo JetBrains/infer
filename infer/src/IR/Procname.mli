@@ -191,7 +191,7 @@ type t =
   | C of C.t
   | CSharp of CSharp.t
   | Erlang of Erlang.t
-  | Go of C.t
+  | Go of GoProcname.t
   | Hack of Hack.t
   | Java of Java.t
   | ObjC_Cpp of ObjC_Cpp.t
@@ -313,6 +313,13 @@ val make_python : module_name:PythonClassName.t -> function_name:string -> t
 
 val make_python_builtin : PythonProcname.builtin -> t
 (** Create a Python builtin name. *)
+
+val make_go : name:string -> t
+(** Create a Go procedure name out of the qualified name go2sil emitted. *)
+
+val make_go_builtin : GoProcname.builtin -> t
+(** Create a Go intrinsic name, i.e. one of the [$builtins.go_*] procedures [PulseModelsGo] models
+    directly. *)
 
 val empty_block : t
 (** Empty block name. *)

@@ -596,7 +596,7 @@ type t =
   | C of C.t
   | CSharp of CSharp.t
   | Erlang of Erlang.t
-  | Go of C.t (* we might want to refine that later *)
+  | Go of GoProcname.t
   | Hack of Hack.t
   | Java of Java.t
   | ObjC_Cpp of ObjC_Cpp.t
@@ -664,8 +664,8 @@ let compare_name x y =
       -1
   | _, Erlang _ ->
       1
-  | Go {c_name= name1}, Go {c_name= name2} ->
-      QualifiedCppName.compare_name name1 name2
+  | Go name1, Go name2 ->
+      GoProcname.compare name1 name2
   | Go _, _ ->
       -1
   | _, Go _ ->
@@ -878,8 +878,10 @@ let objc_cpp_replace_method_name t (new_method_name : string) =
 let get_method = function
   | ObjC_Cpp name ->
       name.method_name
-  | C {c_name} | Go {c_name} | Rust {c_name} ->
+  | C {c_name} | Rust {c_name} ->
       QualifiedCppName.to_qual_string c_name
+  | Go go_pname ->
+      GoProcname.get_method go_pname
   | Erlang name ->
       name.function_name
   | Hack name ->
@@ -1076,8 +1078,8 @@ let pp_unique_id fmt = function
       Block.pp Verbose fmt bsig
   | Python h ->
       PythonProcname.pp fmt h
-  | Go osig ->
-      C.pp Verbose fmt osig
+  | Go go_pname ->
+      GoProcname.pp Verbose fmt go_pname
   | Rust osig ->
       C.pp Verbose fmt osig
   | Swift osig ->
@@ -1104,8 +1106,8 @@ let pp_with_verbosity verbosity fmt = function
       Block.pp verbosity fmt bsig
   | Python h ->
       PythonProcname.pp fmt h
-  | Go osig ->
-      C.pp verbosity fmt osig
+  | Go go_pname ->
+      GoProcname.pp verbosity fmt go_pname
   | Rust osig ->
       C.pp verbosity fmt osig
   | Swift osig ->
@@ -1151,8 +1153,8 @@ let pp_fullname_only fmt = function
       Block.pp FullNameOnly fmt bsig
   | Python h ->
       PythonProcname.pp fmt h
-  | Go osig ->
-      C.pp FullNameOnly fmt osig
+  | Go go_pname ->
+      GoProcname.pp FullNameOnly fmt go_pname
   | Rust osig ->
       C.pp FullNameOnly fmt osig
   | Swift osig ->
@@ -1176,8 +1178,8 @@ let pp_name_only fmt = function
       Block.pp NameOnly fmt bsig
   | Python h ->
       PythonProcname.pp fmt h
-  | Go osig ->
-      C.pp NameOnly fmt osig
+  | Go go_pname ->
+      GoProcname.pp NameOnly fmt go_pname
   | Rust osig ->
       C.pp NameOnly fmt osig
   | Swift osig ->
@@ -1207,8 +1209,8 @@ let pp_simplified_string ?(withclass = false) fmt = function
       Block.pp Simple fmt bsig
   | Python h ->
       PythonProcname.pp fmt h
-  | Go osig ->
-      C.pp Simple fmt osig
+  | Go go_pname ->
+      GoProcname.pp Simple fmt go_pname
   | Rust osig ->
       C.pp Simple fmt osig
   | Swift osig ->
@@ -1316,6 +1318,10 @@ let make_objc_copyWithZone ~is_mutable name = ObjC_Cpp (ObjC_Cpp.make_copyWithZo
 let make_python ~module_name ~function_name = Python (Regular {module_name; function_name})
 
 let make_python_builtin builtin = Python (Builtin builtin)
+
+let make_go ~name = Go (GoProcname.regular_from_string name)
+
+let make_go_builtin builtin = Go (GoProcname.mk_builtin builtin)
 
 let erlang_call_unqualified ~arity = Erlang (Erlang.call_unqualified arity)
 

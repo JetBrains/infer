@@ -376,6 +376,15 @@ module ProcDeclBridge = struct
         `Regular (TypeNameBridge.to_python_class_name value args)
 
 
+  (* go2sil names a Go function [<import path>::<name>] and leaves the enclosing class empty, so an
+     enclosing class can only be the reserved [$builtins] namespace of the collection intrinsics. *)
+  let go_class_name_to_sil = function
+    | QualifiedProcName.Enclosing {name= {value= "$builtins"}} ->
+        `Builtin
+    | QualifiedProcName.TopLevel | QualifiedProcName.Enclosing _ ->
+        `Regular
+
+
   let swift_objc_class_name_to_sil lang = function
     | QualifiedProcName.TopLevel ->
         None
@@ -459,9 +468,20 @@ module ProcDeclBridge = struct
     | Rust ->
         SilProcname.Rust (SilProcname.C.from_string t.qualified_name.name.value)
         |> SilStruct.mk_tenv_method
-    | Go ->
-        SilProcname.Go (SilProcname.C.from_string t.qualified_name.name.value)
-        |> SilStruct.mk_tenv_method
+    | Go -> (
+      match go_class_name_to_sil t.qualified_name.enclosing_class with
+      | `Regular ->
+          SilProcname.make_go ~name:t.qualified_name.name.value |> SilStruct.mk_tenv_method
+      | `Builtin -> (
+        match GoProcname.builtin_from_string method_name with
+        | Some builtin ->
+            SilProcname.make_go_builtin builtin |> SilStruct.mk_tenv_method
+        | None ->
+            (* Degrade like Swift rather than die like Python: a frontend one version ahead of the
+               models must cost the one call, not the whole capture. *)
+            L.internal_error "Textual: Go: unknown builtin %s in %a@\n" method_name
+              Textual.SourceFile.pp sourcefile ;
+            SilProcname.make_go ~name:method_name |> SilStruct.mk_tenv_method ) )
     | Swift -> (
         let plain_name = List.find_map ~f:Attr.get_plain_name t.attributes in
         let llvm_offset = List.find_map ~f:Attr.get_method_offset t.attributes in
