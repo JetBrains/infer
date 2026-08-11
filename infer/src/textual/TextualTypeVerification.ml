@@ -490,7 +490,20 @@ let typeof_const (const : Const.t) : Typ.t =
       Float
 
 
+(* A comparison answers a question and therefore yields an [Int] (which is what [prune] consumes)
+   whatever its operands are; every other binop yields a value of the operand type. *)
+let binop_yields_bool (op : Binop.t) =
+  match op with Lt | Gt | Le | Ge | Eq | Ne | LAnd | LOr -> true | _ -> false
+
+
+(* Textual types every __sil_* binop as (int, int) -> int, which is right for the frontends that
+   only ever produce integer operands. Go really does compare and add floats, so when one shows up
+   we ask for two of them instead, and give arithmetic a float result. Without this a single
+   [__sil_gt(n2, 1.5)] costs the whole unit. *)
+let has_float_operand args = List.exists args ~f:(fun (_, typ) -> Typ.equal typ Typ.Float)
+
 let typeof_binop op args procsig =
+  let* lang = get_lang in
   match (op : Binop.t) with
   | PlusPI | MinusPI -> (
     match args with
@@ -498,18 +511,26 @@ let typeof_binop op args procsig =
         ret (typ1, Some [typ1; Typ.Int], TextualDecls.NotVariadic, procsig, args)
     | _ ->
         abort )
+  | _ when Textual.Lang.is_go lang && has_float_operand args ->
+      let result = if binop_yields_bool op then Typ.Int else Typ.Float in
+      ret (result, Some [Typ.Float; Typ.Float], TextualDecls.NotVariadic, procsig, args)
   | _ ->
       ret (Typ.Int, Some [Typ.Int; Typ.Int], TextualDecls.NotVariadic, procsig, args)
 
 
 let typeof_reserved_proc procsig typed_args =
   let proc = ProcSig.to_qualified_procname procsig in
+  let* lang = get_lang in
   match ProcDecl.to_binop proc with
   | Some op ->
       typeof_binop op typed_args procsig
   | None ->
       if ProcDecl.to_unop proc |> Option.is_some then
-        ret (Typ.Int, Some [Typ.Int], TextualDecls.NotVariadic, procsig, typed_args)
+        (* Unary minus on a float is a float, for the same reason. *)
+        let typ =
+          if Textual.Lang.is_go lang && has_float_operand typed_args then Typ.Float else Typ.Int
+        in
+        ret (typ, Some [typ], TextualDecls.NotVariadic, procsig, typed_args)
       else
         let* () = add_error (mk_missing_declaration_error procsig) in
         abort

@@ -25,8 +25,6 @@ module L = Logging
     infer process: Go packages are small compared to Hack codebases and this keeps the integration
     trivial (no worker pools, no intermediate databases). *)
 
-let units_subcommand = "units"
-
 let unit_start_marker = "// TEXTUAL UNIT START "
 
 let unit_end_marker = "// TEXTUAL UNIT END "
@@ -112,9 +110,6 @@ let run_translator prog args =
 
 
 let capture ~prog ~args =
-  if not (List.mem args units_subcommand ~equal:String.equal) then
-    L.die UserError "go2sil command line is missing the '%s' subcommand: %s %s" units_subcommand
-      prog (String.concat ~sep:" " args) ;
   let units = run_translator prog args in
   if List.is_empty units then L.die ExternalError "go2sil produced no textual units" ;
   let global_tenv = Tenv.create () in
