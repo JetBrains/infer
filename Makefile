@@ -874,6 +874,10 @@ ifeq ($(BUILD_HACK_ANALYZERS),yes)
 	test -d      '$(DESTDIR)$(libdir)/infer/infer/lib/hack/' || \
 	  $(MKDIR_P) '$(DESTDIR)$(libdir)/infer/infer/lib/hack/'
 endif
+#	the Go frontend is always built, and its standard-library contracts are not optional:
+#	Go.ml refuses to capture without them
+	test -d      '$(DESTDIR)$(libdir)/infer/infer/lib/go/' || \
+	  $(MKDIR_P) '$(DESTDIR)$(libdir)/infer/infer/lib/go/'
 ifeq ($(BUILD_ERLANG_ANALYZERS),yes)
 	test -d      '$(DESTDIR)$(libdir)/infer/infer/lib/erlang/' || \
 	  $(MKDIR_P) '$(DESTDIR)$(libdir)/infer/infer/lib/erlang/'
@@ -892,6 +896,8 @@ ifeq ($(BUILD_HACK_ANALYZERS),yes)
 	$(INSTALL_DATA) -C          'infer/lib/hack/models.sil' \
 	  '$(DESTDIR)$(libdir)/infer/infer/lib/hack/models.sil'
 endif
+	$(INSTALL_DATA) -C          'infer/lib/go/models.sil' \
+	  '$(DESTDIR)$(libdir)/infer/infer/lib/go/models.sil'
 ifeq ($(BUILD_C_ANALYZERS),yes)
 	$(INSTALL_DATA) -C          'facebook-clang-plugins/libtooling/build/FacebookClangPlugin.dylib' \
 	  '$(DESTDIR)$(libdir)/infer/facebook-clang-plugins/libtooling/build/FacebookClangPlugin.dylib'
