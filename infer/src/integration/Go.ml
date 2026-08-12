@@ -121,20 +121,41 @@ let capture_unit ~global_tenv {source_path; content} =
       false
 
 
+(** run the translator with its standard error redirected into a temporary file, and return the
+    units it printed on standard output.
+
+    The redirection is not a convenience. Reading the two pipes one after the other deadlocks:
+    [extract_units] drains stdout to EOF, so once the translator has written a pipe buffer's worth
+    of diagnostics (64 KiB, and go2sil prints one line per untranslatable function — 4 MB on a large
+    repository) it blocks in [write] on stderr and stops producing stdout, while infer is still
+    blocked reading stdout. Neither side ever moves again. A file has no such limit, and since the
+    diagnostics only ever reach the debug log there is no reason to read them before the child is
+    gone. Same trick, and the same reason, as {!Hack.start_hackc}.
+
+    Inheriting infer's own stderr would be simpler still, but the translator's output is verbose by
+    design (it names every function it refuses) and belongs in the log, not on the user's terminal. *)
 let run_translator prog args =
-  let {IUnix.Process_info.stdin; stdout; stderr; pid} = IUnix.create_process ~prog ~args in
+  let stderr_log = IFilename.temp_file ~in_dir:(ResultsDir.get_path Temporary) "go2sil" "stderr" in
+  let escaped_cmd = List.map ~f:Escape.escape_shell (prog :: args) |> String.concat ~sep:" " in
+  let redirected_cmd =
+    Printf.sprintf "exec %s 2>%s" escaped_cmd (Escape.escape_shell stderr_log)
+  in
+  let {IUnix.Process_info.stdin; stdout; stderr; pid} =
+    IUnix.create_process ~prog:"sh" ~args:["-c"; redirected_cmd]
+  in
   Unix.close stdin ;
+  Unix.close stderr ;
   let stdout_ic = Unix.in_channel_of_descr stdout in
-  let stderr_ic = Unix.in_channel_of_descr stderr in
   let units = extract_units stdout_ic in
-  let error_output = In_channel.input_all stderr_ic in
   In_channel.close stdout_ic ;
-  In_channel.close stderr_ic ;
-  ( match IUnix.waitpid pid with
+  let status = IUnix.waitpid pid in
+  let error_output = try In_channel.read_all stderr_log with Sys_error _ -> "" in
+  if not Config.debug_mode then Unix.unlink stderr_log ;
+  ( match status with
   | Ok () ->
       if not (String.is_empty error_output) then
         L.debug Capture Quiet "%s@\n" error_output
-  | Error _ as status ->
+  | Error _ ->
       L.die ExternalError "*** %s exited with %s@\n*** %s@." prog
         (IUnix.Exit_or_signal.to_string_hum status)
         error_output ) ;
