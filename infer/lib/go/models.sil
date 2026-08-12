@@ -13,6 +13,8 @@
 // stand-in for types outside the translated subset
 type $opaque = { }
 
+type $func = { }
+
 type $iface = { }
 
 type $map = { }
@@ -77,7 +79,7 @@ type net::TCPAddr = { IP: *$slice; Port: int; Zone: int }
 
 type net::UDPAddr = { IP: *$slice; Port: int; Zone: int }
 
-type net::http::Request = { Method: int; URL: *net::url::URL; Proto: int; ProtoMajor: int; ProtoMinor: int; Header: *$map; Body: *$iface; ContentLength: int; TransferEncoding: *$slice; Close: int; Host: int; Form: *$map; PostForm: *$map; MultipartForm: *mime::multipart::Form; Trailer: *$map; RemoteAddr: int; RequestURI: int; TLS: *crypto::tls::ConnectionState; Response: *net::http::Response; Pattern: int }
+type net::http::Request = { Method: int; URL: *net::url::URL; Proto: int; ProtoMajor: int; ProtoMinor: int; Header: *$map; Body: *$iface; GetBody: *$func; ContentLength: int; TransferEncoding: *$slice; Close: int; Host: int; Form: *$map; PostForm: *$map; MultipartForm: *mime::multipart::Form; Trailer: *$map; RemoteAddr: int; RequestURI: int; TLS: *crypto::tls::ConnectionState; Response: *net::http::Response; Pattern: int }
 
 type net::http::Response = { Status: int; StatusCode: int; Proto: int; ProtoMajor: int; ProtoMinor: int; Header: *$map; Body: *$iface; ContentLength: int; TransferEncoding: *$slice; Close: int; Uncompressed: int; Trailer: *$map; Request: *net::http::Request; TLS: *crypto::tls::ConnectionState }
 
@@ -93,7 +95,7 @@ type os::Process = { Pid: int }
 
 type os::ProcessState = { }
 
-type os::exec::Cmd = { Path: int; Args: *$slice; Env: *$slice; Dir: int; Stdin: *$iface; Stdout: *$iface; Stderr: *$iface; ExtraFiles: *$slice; SysProcAttr: *syscall::SysProcAttr; Process: *os::Process; ProcessState: *os::ProcessState; Err: *$iface; WaitDelay: int }
+type os::exec::Cmd = { Path: int; Args: *$slice; Env: *$slice; Dir: int; Stdin: *$iface; Stdout: *$iface; Stderr: *$iface; ExtraFiles: *$slice; SysProcAttr: *syscall::SysProcAttr; Process: *os::Process; ProcessState: *os::ProcessState; Err: *$iface; Cancel: *$func; WaitDelay: int }
 
 type regexp::Regexp = { }
 
