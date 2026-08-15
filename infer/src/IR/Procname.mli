@@ -317,6 +317,9 @@ val make_python_builtin : PythonProcname.builtin -> t
 val make_go : name:string -> t
 (** Create a Go procedure name out of the qualified name go2sil emitted. *)
 
+val make_go_method : class_name:Typ.Name.t -> method_name:string -> t
+(** Create a Go method name with a receiver class that virtual dispatch can replace. *)
+
 val make_go_builtin : GoProcname.builtin -> t
 (** Create a Go intrinsic name, i.e. one of the [$builtins.go_*] procedures [PulseModelsGo] models
     directly. *)

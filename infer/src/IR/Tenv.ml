@@ -420,8 +420,8 @@ module MethodInfo = struct
     match proc_name with
     | Hack _ ->
         HackInfo (Hack.mk_class ~kind proc_name)
-    | Block _ | C _ | Go _ | Rust _ | CSharp _ | Erlang _ | Java _ | ObjC_Cpp _ | Python _
-    | Swift _ ->
+    | Block _ | C _ | Go _ | Rust _ | CSharp _ | Erlang _ | Java _ | ObjC_Cpp _ | Python _ | Swift _
+      ->
         DefaultInfo (Default.mk_class proc_name)
 
 
@@ -470,7 +470,11 @@ let resolve_method ?(is_virtual = false) ~method_exists tenv class_name proc_nam
   let missed_capture_types = ref Typ.Name.Set.empty in
   let visited_hack_model = ref false in
   let rec resolve_name (class_name : Typ.Name.t) =
-    if Typ.Name.Set.mem class_name !visited || not (Typ.Name.is_class class_name) then None
+    let is_method_container =
+      Typ.Name.is_class class_name
+      || match class_name with CStruct _ -> Language.curr_language_is Go | _ -> false
+    in
+    if Typ.Name.Set.mem class_name !visited || not is_method_container then None
     else (
       visited := Typ.Name.Set.add class_name !visited ;
       let struct_opt = lookup tenv class_name in

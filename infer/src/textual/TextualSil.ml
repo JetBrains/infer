@@ -376,13 +376,15 @@ module ProcDeclBridge = struct
         `Regular (TypeNameBridge.to_python_class_name value args)
 
 
-  (* go2sil names a Go function [<import path>::<name>] and leaves the enclosing class empty, so an
-     enclosing class can only be the reserved [$builtins] namespace of the collection intrinsics. *)
+  (* Go functions stay top-level. Methods carry their receiver type as the enclosing class so Pulse
+     can replace it with the receiver's dynamic type during virtual dispatch. *)
   let go_class_name_to_sil = function
     | QualifiedProcName.Enclosing {name= {value= "$builtins"}} ->
         `Builtin
-    | QualifiedProcName.TopLevel | QualifiedProcName.Enclosing _ ->
-        `Regular
+    | QualifiedProcName.TopLevel ->
+        `Function
+    | QualifiedProcName.Enclosing class_name ->
+        `Method (TypeNameBridge.to_sil Go class_name)
 
 
   let swift_objc_class_name_to_sil lang = function
@@ -470,8 +472,10 @@ module ProcDeclBridge = struct
         |> SilStruct.mk_tenv_method
     | Go -> (
       match go_class_name_to_sil t.qualified_name.enclosing_class with
-      | `Regular ->
+      | `Function ->
           SilProcname.make_go ~name:t.qualified_name.name.value |> SilStruct.mk_tenv_method
+      | `Method class_name ->
+          SilProcname.make_go_method ~class_name ~method_name |> SilStruct.mk_tenv_method
       | `Builtin -> (
         match GoProcname.builtin_from_string method_name with
         | Some builtin ->

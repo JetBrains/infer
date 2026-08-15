@@ -11,8 +11,8 @@ module F = Format
 (** The intrinsics the Go frontend (go2sil) emits instead of the real semantics of an operation on a
     slice or a map. They live in the reserved [$builtins] namespace of a Textual unit, have no body,
     and are executed by [PulseModelsGo] before the regular model dispatcher runs. Only the
-    nilability of the collection itself is modelled; the contents are not, which is why no
-    intrinsic takes a key, an index or an appended element. *)
+    nilability of the collection itself is modelled; the contents are not, which is why no intrinsic
+    takes a key, an index or an appended element. *)
 type builtin =
   | Append  (** [append(s, v...)]: a fresh non-nil slice; the added values are not modelled. *)
   | ArrayIndexAddr  (** [&a[i]] through an array pointer: panics on nil. *)
@@ -22,7 +22,7 @@ type builtin =
   | MapDelete  (** [delete(m, k)]: legal on a nil map, and only ever shrinks it. *)
   | MapLen  (** [len(m)]: 0 on a nil map. *)
   | MapLoad  (** [m[k]]: legal on a nil map, where it yields the zero value. *)
-  | MapLoadOk  (** the [ok] of [v, ok := m\[k\]]: never true on a nil map. *)
+  | MapLoadOk  (** the [ok] of [v, ok := m[k]]: never true on a nil map. *)
   | MapNext  (** the [ok] of one [range m] step: never true on a nil or empty map. *)
   | MapStore  (** [m[k] = v]: panics on a nil map. *)
   | SliceCap  (** [cap(s)]: 0 on a nil slice. *)
@@ -32,12 +32,23 @@ type builtin =
   | SliceSlice  (** [s[lo:hi]] on a slice: nil in, nil out. *)
 [@@deriving compare, equal, yojson_of, sexp, hash, normalize, enumerate]
 
-type t = Builtin of builtin | Regular of Typ.c_function_sig
+type regular =
+  | Function of Typ.c_function_sig
+  | Method of {class_name: Typ.Name.t; method_name: string}
+[@@deriving compare, equal, yojson_of, sexp, hash, normalize]
+
+type t = Builtin of builtin | Regular of regular
 [@@deriving compare, equal, yojson_of, sexp, hash, normalize]
 
 val mk_builtin : builtin -> t
 
 val regular_from_string : string -> t
+
+val method_ : class_name:Typ.Name.t -> method_name:string -> t
+
+val replace_class : t -> Typ.Name.t -> t
+
+val get_class_type_name : t -> Typ.Name.t option
 
 val show_builtin : builtin -> string
 

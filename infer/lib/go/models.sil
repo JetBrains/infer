@@ -21,13 +21,19 @@ type $map = { }
 
 type $slice = { }
 
-type $tuple2$P$iface$P$iface = { v0: *$iface; v1: *$iface }
-
 type $tuple2$P$slice$P$iface = { v0: *$slice; v1: *$iface }
 
 type $tuple2$Pdatabase::sql::DB$P$iface = { v0: *database::sql::DB; v1: *$iface }
 
 type $tuple2$Pio::PipeReader$Pio::PipeWriter = { v0: *io::PipeReader; v1: *io::PipeWriter }
+
+type $tuple2$Pio::fs::FileInfo$P$iface = { v0: *io::fs::FileInfo; v1: *$iface }
+
+type $tuple2$Pnet::Conn$P$iface = { v0: *net::Conn; v1: *$iface }
+
+type $tuple2$Pnet::Listener$P$iface = { v0: *net::Listener; v1: *$iface }
+
+type $tuple2$Pnet::PacketConn$P$iface = { v0: *net::PacketConn; v1: *$iface }
 
 type $tuple2$Pnet::TCPAddr$P$iface = { v0: *net::TCPAddr; v1: *$iface }
 
@@ -63,25 +69,43 @@ type bytes::Buffer = { }
 
 type bytes::Reader = { }
 
+type context::Context .abstract { }
+
 type crypto::tls::ConnectionState = { Version: int; HandshakeComplete: int; DidResume: int; CipherSuite: int; CurveID: int; NegotiatedProtocol: int; NegotiatedProtocolIsMutual: int; ServerName: int; PeerCertificates: *$slice; VerifiedChains: *$slice; SignedCertificateTimestamps: *$slice; OCSPResponse: *$slice; TLSUnique: *$slice; ECHAccepted: int; HelloRetryRequest: int }
 
 type database::sql::DB = { }
+
+type io::Closer .abstract { }
 
 type io::PipeReader = { }
 
 type io::PipeWriter = { }
 
+type io::ReadCloser extends io::Reader, io::Closer .abstract { }
+
+type io::Reader .abstract { }
+
+type io::Writer .abstract { }
+
+type io::fs::FileInfo .abstract { }
+
 type log::Logger = { }
 
 type mime::multipart::Form = { Value: *$map; File: *$map }
+
+type net::Conn .abstract { }
+
+type net::Listener .abstract { }
+
+type net::PacketConn .abstract { }
 
 type net::TCPAddr = { IP: *$slice; Port: int; Zone: int }
 
 type net::UDPAddr = { IP: *$slice; Port: int; Zone: int }
 
-type net::http::Request = { Method: int; URL: *net::url::URL; Proto: int; ProtoMajor: int; ProtoMinor: int; Header: *$map; Body: *$iface; GetBody: *$func; ContentLength: int; TransferEncoding: *$slice; Close: int; Host: int; Form: *$map; PostForm: *$map; MultipartForm: *mime::multipart::Form; Trailer: *$map; RemoteAddr: int; RequestURI: int; TLS: *crypto::tls::ConnectionState; Response: *net::http::Response; Pattern: int }
+type net::http::Request = { Method: int; URL: *net::url::URL; Proto: int; ProtoMajor: int; ProtoMinor: int; Header: *$map; Body: *io::ReadCloser; GetBody: *$func; ContentLength: int; TransferEncoding: *$slice; Close: int; Host: int; Form: *$map; PostForm: *$map; MultipartForm: *mime::multipart::Form; Trailer: *$map; RemoteAddr: int; RequestURI: int; TLS: *crypto::tls::ConnectionState; Response: *net::http::Response; Pattern: int }
 
-type net::http::Response = { Status: int; StatusCode: int; Proto: int; ProtoMajor: int; ProtoMinor: int; Header: *$map; Body: *$iface; ContentLength: int; TransferEncoding: *$slice; Close: int; Uncompressed: int; Trailer: *$map; Request: *net::http::Request; TLS: *crypto::tls::ConnectionState }
+type net::http::Response = { Status: int; StatusCode: int; Proto: int; ProtoMajor: int; ProtoMinor: int; Header: *$map; Body: *io::ReadCloser; ContentLength: int; TransferEncoding: *$slice; Close: int; Uncompressed: int; Trailer: *$map; Request: *net::http::Request; TLS: *crypto::tls::ConnectionState }
 
 type net::http::ServeMux = { }
 
@@ -95,7 +119,7 @@ type os::Process = { Pid: int }
 
 type os::ProcessState = { }
 
-type os::exec::Cmd = { Path: int; Args: *$slice; Env: *$slice; Dir: int; Stdin: *$iface; Stdout: *$iface; Stderr: *$iface; ExtraFiles: *$slice; SysProcAttr: *syscall::SysProcAttr; Process: *os::Process; ProcessState: *os::ProcessState; Err: *$iface; Cancel: *$func; WaitDelay: int }
+type os::exec::Cmd = { Path: int; Args: *$slice; Env: *$slice; Dir: int; Stdin: *io::Reader; Stdout: *io::Writer; Stderr: *io::Writer; ExtraFiles: *$slice; SysProcAttr: *syscall::SysProcAttr; Process: *os::Process; ProcessState: *os::ProcessState; Err: *$iface; Cancel: *$func; WaitDelay: int }
 
 type regexp::Regexp = { }
 
@@ -145,21 +169,21 @@ define bufio::NewReadWriter(r: *bufio::Reader, w: *bufio::Writer) : *bufio::Read
 }
 
 // contract of bufio.NewReader: the result is never nil
-define bufio::NewReader(rd: *$iface) : *bufio::Reader {
+define bufio::NewReader(rd: *io::Reader) : *bufio::Reader {
   #entry:
       n0 = __sil_allocate(<bufio::Reader>)
       ret n0
 }
 
 // contract of bufio.NewScanner: the result is never nil
-define bufio::NewScanner(r: *$iface) : *bufio::Scanner {
+define bufio::NewScanner(r: *io::Reader) : *bufio::Scanner {
   #entry:
       n0 = __sil_allocate(<bufio::Scanner>)
       ret n0
 }
 
 // contract of bufio.NewWriter: the result is never nil
-define bufio::NewWriter(w: *$iface) : *bufio::Writer {
+define bufio::NewWriter(w: *io::Writer) : *bufio::Writer {
   #entry:
       n0 = __sil_allocate(<bufio::Writer>)
       ret n0
@@ -201,16 +225,16 @@ define bytes::Split(s: *$slice, sep: *$slice) : *$slice {
 }
 
 // contract of context.Background: the result is never nil
-define context::Background() : *$iface {
+define context::Background() : *context::Context {
   #entry:
-      n0 = __sil_allocate(<$iface>)
+      n0 = __sil_allocate(<context::Context>)
       ret n0
 }
 
 // contract of context.TODO: the result is never nil
-define context::TODO() : *$iface {
+define context::TODO() : *context::Context {
   #entry:
-      n0 = __sil_allocate(<$iface>)
+      n0 = __sil_allocate(<context::Context>)
       ret n0
 }
 
@@ -291,7 +315,7 @@ define io::Pipe() : *$tuple2$Pio::PipeReader$Pio::PipeWriter {
 }
 
 // contract of io.ReadAll: the result is never nil
-define io::ReadAll(r: *$iface) : *$tuple2$P$slice$P$iface {
+define io::ReadAll(r: *io::Reader) : *$tuple2$P$slice$P$iface {
   #entry:
       n0 = __sil_allocate(<$tuple2$P$slice$P$iface>)
       jmp ok, fail
@@ -337,7 +361,7 @@ define log::Fatalln(v: *$slice) : void {
 }
 
 // contract of log.New: the result is never nil
-define log::New(out: *$iface, prefix: int, flag: int) : *log::Logger {
+define log::New(out: *io::Writer, prefix: int, flag: int) : *log::Logger {
   #entry:
       n0 = __sil_allocate(<log::Logger>)
       ret n0
@@ -365,70 +389,70 @@ define log::Panicln(v: *$slice) : void {
 }
 
 // contract of net.Dial: the result is non-nil exactly when err is nil
-define net::Dial(network: int, address: int) : *$tuple2$P$iface$P$iface {
+define net::Dial(network: int, address: int) : *$tuple2$Pnet::Conn$P$iface {
   #entry:
-      n0 = __sil_allocate(<$tuple2$P$iface$P$iface>)
+      n0 = __sil_allocate(<$tuple2$Pnet::Conn$P$iface>)
       jmp ok, fail
   #ok:
-      n1 = __sil_allocate(<$iface>)
-      store n0.$tuple2$P$iface$P$iface.v0 <- n1: *$iface
-      store n0.$tuple2$P$iface$P$iface.v1 <- null: *$iface
+      n1 = __sil_allocate(<net::Conn>)
+      store n0.$tuple2$Pnet::Conn$P$iface.v0 <- n1: *net::Conn
+      store n0.$tuple2$Pnet::Conn$P$iface.v1 <- null: *$iface
       ret n0
   #fail:
       n2 = __sil_allocate(<$iface>)
-      store n0.$tuple2$P$iface$P$iface.v0 <- null: *$iface
-      store n0.$tuple2$P$iface$P$iface.v1 <- n2: *$iface
+      store n0.$tuple2$Pnet::Conn$P$iface.v0 <- null: *net::Conn
+      store n0.$tuple2$Pnet::Conn$P$iface.v1 <- n2: *$iface
       ret n0
 }
 
 // contract of net.DialTimeout: the result is non-nil exactly when err is nil
-define net::DialTimeout(network: int, address: int, timeout: int) : *$tuple2$P$iface$P$iface {
+define net::DialTimeout(network: int, address: int, timeout: int) : *$tuple2$Pnet::Conn$P$iface {
   #entry:
-      n0 = __sil_allocate(<$tuple2$P$iface$P$iface>)
+      n0 = __sil_allocate(<$tuple2$Pnet::Conn$P$iface>)
       jmp ok, fail
   #ok:
-      n1 = __sil_allocate(<$iface>)
-      store n0.$tuple2$P$iface$P$iface.v0 <- n1: *$iface
-      store n0.$tuple2$P$iface$P$iface.v1 <- null: *$iface
+      n1 = __sil_allocate(<net::Conn>)
+      store n0.$tuple2$Pnet::Conn$P$iface.v0 <- n1: *net::Conn
+      store n0.$tuple2$Pnet::Conn$P$iface.v1 <- null: *$iface
       ret n0
   #fail:
       n2 = __sil_allocate(<$iface>)
-      store n0.$tuple2$P$iface$P$iface.v0 <- null: *$iface
-      store n0.$tuple2$P$iface$P$iface.v1 <- n2: *$iface
+      store n0.$tuple2$Pnet::Conn$P$iface.v0 <- null: *net::Conn
+      store n0.$tuple2$Pnet::Conn$P$iface.v1 <- n2: *$iface
       ret n0
 }
 
 // contract of net.Listen: the result is non-nil exactly when err is nil
-define net::Listen(network: int, address: int) : *$tuple2$P$iface$P$iface {
+define net::Listen(network: int, address: int) : *$tuple2$Pnet::Listener$P$iface {
   #entry:
-      n0 = __sil_allocate(<$tuple2$P$iface$P$iface>)
+      n0 = __sil_allocate(<$tuple2$Pnet::Listener$P$iface>)
       jmp ok, fail
   #ok:
-      n1 = __sil_allocate(<$iface>)
-      store n0.$tuple2$P$iface$P$iface.v0 <- n1: *$iface
-      store n0.$tuple2$P$iface$P$iface.v1 <- null: *$iface
+      n1 = __sil_allocate(<net::Listener>)
+      store n0.$tuple2$Pnet::Listener$P$iface.v0 <- n1: *net::Listener
+      store n0.$tuple2$Pnet::Listener$P$iface.v1 <- null: *$iface
       ret n0
   #fail:
       n2 = __sil_allocate(<$iface>)
-      store n0.$tuple2$P$iface$P$iface.v0 <- null: *$iface
-      store n0.$tuple2$P$iface$P$iface.v1 <- n2: *$iface
+      store n0.$tuple2$Pnet::Listener$P$iface.v0 <- null: *net::Listener
+      store n0.$tuple2$Pnet::Listener$P$iface.v1 <- n2: *$iface
       ret n0
 }
 
 // contract of net.ListenPacket: the result is non-nil exactly when err is nil
-define net::ListenPacket(network: int, address: int) : *$tuple2$P$iface$P$iface {
+define net::ListenPacket(network: int, address: int) : *$tuple2$Pnet::PacketConn$P$iface {
   #entry:
-      n0 = __sil_allocate(<$tuple2$P$iface$P$iface>)
+      n0 = __sil_allocate(<$tuple2$Pnet::PacketConn$P$iface>)
       jmp ok, fail
   #ok:
-      n1 = __sil_allocate(<$iface>)
-      store n0.$tuple2$P$iface$P$iface.v0 <- n1: *$iface
-      store n0.$tuple2$P$iface$P$iface.v1 <- null: *$iface
+      n1 = __sil_allocate(<net::PacketConn>)
+      store n0.$tuple2$Pnet::PacketConn$P$iface.v0 <- n1: *net::PacketConn
+      store n0.$tuple2$Pnet::PacketConn$P$iface.v1 <- null: *$iface
       ret n0
   #fail:
       n2 = __sil_allocate(<$iface>)
-      store n0.$tuple2$P$iface$P$iface.v0 <- null: *$iface
-      store n0.$tuple2$P$iface$P$iface.v1 <- n2: *$iface
+      store n0.$tuple2$Pnet::PacketConn$P$iface.v0 <- null: *net::PacketConn
+      store n0.$tuple2$Pnet::PacketConn$P$iface.v1 <- n2: *$iface
       ret n0
 }
 
@@ -522,7 +546,7 @@ define net::http::Head(url: int) : *$tuple2$Pnet::http::Response$P$iface {
 }
 
 // contract of net/http.NewRequest: the result is non-nil exactly when err is nil
-define net::http::NewRequest(method: int, url: int, body: *$iface) : *$tuple2$Pnet::http::Request$P$iface {
+define net::http::NewRequest(method: int, url: int, body: *io::Reader) : *$tuple2$Pnet::http::Request$P$iface {
   #entry:
       n0 = __sil_allocate(<$tuple2$Pnet::http::Request$P$iface>)
       jmp ok, fail
@@ -539,7 +563,7 @@ define net::http::NewRequest(method: int, url: int, body: *$iface) : *$tuple2$Pn
 }
 
 // contract of net/http.NewRequestWithContext: the result is non-nil exactly when err is nil
-define net::http::NewRequestWithContext(ctx: *$iface, method: int, url: int, body: *$iface) : *$tuple2$Pnet::http::Request$P$iface {
+define net::http::NewRequestWithContext(ctx: *context::Context, method: int, url: int, body: *io::Reader) : *$tuple2$Pnet::http::Request$P$iface {
   #entry:
       n0 = __sil_allocate(<$tuple2$Pnet::http::Request$P$iface>)
       jmp ok, fail
@@ -563,7 +587,7 @@ define net::http::NewServeMux() : *net::http::ServeMux {
 }
 
 // contract of net/http.Post: the result is non-nil when err is nil, unconstrained otherwise
-define net::http::Post(url: int, contentType: int, body: *$iface) : *$tuple2$Pnet::http::Response$P$iface {
+define net::http::Post(url: int, contentType: int, body: *io::Reader) : *$tuple2$Pnet::http::Response$P$iface {
   #entry:
       n0 = __sil_allocate(<$tuple2$Pnet::http::Response$P$iface>)
       jmp ok, fail
@@ -659,19 +683,19 @@ define os::Exit(code: int) : void {
 }
 
 // contract of os.Lstat: the result is non-nil exactly when err is nil
-define os::Lstat(name: int) : *$tuple2$P$iface$P$iface {
+define os::Lstat(name: int) : *$tuple2$Pio::fs::FileInfo$P$iface {
   #entry:
-      n0 = __sil_allocate(<$tuple2$P$iface$P$iface>)
+      n0 = __sil_allocate(<$tuple2$Pio::fs::FileInfo$P$iface>)
       jmp ok, fail
   #ok:
-      n1 = __sil_allocate(<$iface>)
-      store n0.$tuple2$P$iface$P$iface.v0 <- n1: *$iface
-      store n0.$tuple2$P$iface$P$iface.v1 <- null: *$iface
+      n1 = __sil_allocate(<io::fs::FileInfo>)
+      store n0.$tuple2$Pio::fs::FileInfo$P$iface.v0 <- n1: *io::fs::FileInfo
+      store n0.$tuple2$Pio::fs::FileInfo$P$iface.v1 <- null: *$iface
       ret n0
   #fail:
       n2 = __sil_allocate(<$iface>)
-      store n0.$tuple2$P$iface$P$iface.v0 <- null: *$iface
-      store n0.$tuple2$P$iface$P$iface.v1 <- n2: *$iface
+      store n0.$tuple2$Pio::fs::FileInfo$P$iface.v0 <- null: *io::fs::FileInfo
+      store n0.$tuple2$Pio::fs::FileInfo$P$iface.v1 <- n2: *$iface
       ret n0
 }
 
@@ -764,19 +788,19 @@ define os::ReadFile(name: int) : *$tuple2$P$slice$P$iface {
 }
 
 // contract of os.Stat: the result is non-nil exactly when err is nil
-define os::Stat(name: int) : *$tuple2$P$iface$P$iface {
+define os::Stat(name: int) : *$tuple2$Pio::fs::FileInfo$P$iface {
   #entry:
-      n0 = __sil_allocate(<$tuple2$P$iface$P$iface>)
+      n0 = __sil_allocate(<$tuple2$Pio::fs::FileInfo$P$iface>)
       jmp ok, fail
   #ok:
-      n1 = __sil_allocate(<$iface>)
-      store n0.$tuple2$P$iface$P$iface.v0 <- n1: *$iface
-      store n0.$tuple2$P$iface$P$iface.v1 <- null: *$iface
+      n1 = __sil_allocate(<io::fs::FileInfo>)
+      store n0.$tuple2$Pio::fs::FileInfo$P$iface.v0 <- n1: *io::fs::FileInfo
+      store n0.$tuple2$Pio::fs::FileInfo$P$iface.v1 <- null: *$iface
       ret n0
   #fail:
       n2 = __sil_allocate(<$iface>)
-      store n0.$tuple2$P$iface$P$iface.v0 <- null: *$iface
-      store n0.$tuple2$P$iface$P$iface.v1 <- n2: *$iface
+      store n0.$tuple2$Pio::fs::FileInfo$P$iface.v0 <- null: *io::fs::FileInfo
+      store n0.$tuple2$Pio::fs::FileInfo$P$iface.v1 <- n2: *$iface
       ret n0
 }
 

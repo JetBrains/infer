@@ -813,9 +813,10 @@ let replace_class t ?(arity_incr = 0) (new_class : Typ.Name.t) =
             L.die InternalError "replace_class on ill-formed Python type"
       in
       Python (Regular {module_name; function_name})
+  | Go go ->
+      Go (GoProcname.replace_class go new_class)
   | Python (Builtin _)
   | Rust _ (* we might want to change this choice when dealing with virtual call later *)
-  | Go _
   | C _
   | Block _
   | Erlang _ ->
@@ -842,7 +843,9 @@ let get_class_type_name t =
       PythonProcname.get_module_type_name python
   | Swift (ClassMethod swift) ->
       Some swift.class_name
-  | C _ | Go _ | Rust _ | Erlang _ | Swift (Function _) | Swift (Builtin _) ->
+  | Go go ->
+      GoProcname.get_class_type_name go
+  | C _ | Rust _ | Erlang _ | Swift (Function _) | Swift (Builtin _) ->
       None
 
 
@@ -1320,6 +1323,8 @@ let make_python ~module_name ~function_name = Python (Regular {module_name; func
 let make_python_builtin builtin = Python (Builtin builtin)
 
 let make_go ~name = Go (GoProcname.regular_from_string name)
+
+let make_go_method ~class_name ~method_name = Go (GoProcname.method_ ~class_name ~method_name)
 
 let make_go_builtin builtin = Go (GoProcname.mk_builtin builtin)
 

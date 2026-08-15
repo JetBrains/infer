@@ -28,15 +28,31 @@ type builtin =
   | SliceSlice
 [@@deriving compare, equal, yojson_of, sexp, hash, normalize, enumerate]
 
-type t = Builtin of builtin | Regular of Typ.c_function_sig
+type regular =
+  | Function of Typ.c_function_sig
+  | Method of {class_name: Typ.Name.t; method_name: string}
+[@@deriving compare, equal, yojson_of, sexp, hash, normalize]
+
+type t = Builtin of builtin | Regular of regular
 [@@deriving compare, equal, yojson_of, sexp, hash, normalize]
 
 let mk_builtin builtin = Builtin builtin
 
 let regular_from_string name =
   Regular
-    {Typ.c_name= QualifiedCppName.of_qual_string name; c_mangled= None; c_template_args= NoTemplate}
+    (Function
+       { Typ.c_name= QualifiedCppName.of_qual_string name
+       ; c_mangled= None
+       ; c_template_args= NoTemplate } )
 
+
+let method_ ~class_name ~method_name = Regular (Method {class_name; method_name})
+
+let replace_class t class_name =
+  match t with Regular (Method {method_name}) -> method_ ~class_name ~method_name | _ -> t
+
+
+let get_class_type_name = function Regular (Method {class_name}) -> Some class_name | _ -> None
 
 let show_builtin = function
   | Append ->
@@ -82,8 +98,17 @@ let builtin_from_string =
 let get_method = function
   | Builtin builtin ->
       show_builtin builtin
-  | Regular {Typ.c_name} ->
+  | Regular (Function {Typ.c_name}) ->
       QualifiedCppName.to_qual_string c_name
+  | Regular (Method {method_name}) ->
+      method_name
+
+
+let regular_to_string = function
+  | Function {Typ.c_name} ->
+      QualifiedCppName.to_qual_string c_name
+  | Method {class_name; method_name} ->
+      F.asprintf "%s_%s" (Typ.Name.name class_name) method_name
 
 
 (* Regular Go procnames must render exactly as [Procname.C] used to render them: go2sil names a
@@ -91,8 +116,8 @@ let get_method = function
 let pp verbosity fmt = function
   | Builtin builtin ->
       F.pp_print_string fmt (show_builtin builtin)
-  | Regular {Typ.c_name} -> (
-      let plain = QualifiedCppName.to_qual_string c_name in
+  | Regular regular -> (
+      let plain = regular_to_string regular in
       match verbosity with
       | Simple ->
           F.fprintf fmt "%s()" plain
