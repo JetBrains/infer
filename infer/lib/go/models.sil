@@ -69,35 +69,35 @@ type bytes::Buffer = { }
 
 type bytes::Reader = { }
 
-type context::Context .abstract { }
+type context::Context extends $iface .abstract { }
 
 type crypto::tls::ConnectionState = { Version: int; HandshakeComplete: int; DidResume: int; CipherSuite: int; CurveID: int; NegotiatedProtocol: int; NegotiatedProtocolIsMutual: int; ServerName: int; PeerCertificates: *$slice; VerifiedChains: *$slice; SignedCertificateTimestamps: *$slice; OCSPResponse: *$slice; TLSUnique: *$slice; ECHAccepted: int; HelloRetryRequest: int }
 
 type database::sql::DB = { }
 
-type io::Closer .abstract { }
+type io::Closer extends $iface .abstract { }
 
 type io::PipeReader = { }
 
 type io::PipeWriter = { }
 
-type io::ReadCloser extends io::Reader, io::Closer .abstract { }
+type io::ReadCloser extends $iface, io::Reader, io::Closer .abstract { }
 
-type io::Reader .abstract { }
+type io::Reader extends $iface .abstract { }
 
-type io::Writer .abstract { }
+type io::Writer extends $iface .abstract { }
 
-type io::fs::FileInfo .abstract { }
+type io::fs::FileInfo extends $iface .abstract { }
 
 type log::Logger = { }
 
 type mime::multipart::Form = { Value: *$map; File: *$map }
 
-type net::Conn .abstract { }
+type net::Conn extends $iface .abstract { }
 
-type net::Listener .abstract { }
+type net::Listener extends $iface .abstract { }
 
-type net::PacketConn .abstract { }
+type net::PacketConn extends $iface .abstract { }
 
 type net::TCPAddr = { IP: *$slice; Port: int; Zone: int }
 
