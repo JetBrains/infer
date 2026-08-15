@@ -2,7 +2,7 @@
 //
 // Contracts for the Go standard library: which results are non-nil when the
 // error is nil. The table lives in go2sil (translate/contracts.go); this file
-// is a snapshot of it taken against the standard-library signatures of go1.27-devel_7bd807271c
+// is a snapshot of it taken against the standard-library signatures of go1.26.3
 // (the toolchain go2sil itself was built with).
 //
 // Regenerate with:
