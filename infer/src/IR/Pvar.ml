@@ -29,7 +29,8 @@ type pvar_kind =
       ; is_static_local: bool
       ; is_static_global: bool
       ; is_constant_array: bool
-      ; is_const: bool }  (** global variable *)
+      ; is_const: bool
+      ; is_nonnull_after_init: bool }  (** global variable *)
   | Seed_var  (** variable used to store the initial value of formal parameters *)
 [@@deriving compare, equal, sexp, hash, normalize]
 
@@ -114,6 +115,9 @@ let is_constant_array pv =
 
 
 let is_const pv = match pv.pv_kind with Global_var {is_const} -> is_const | _ -> false
+
+let is_nonnull_after_init pv =
+  match pv.pv_kind with Global_var {is_nonnull_after_init} -> is_nonnull_after_init | _ -> false
 
 (** Check if a pvar is the special "this" var *)
 let is_this pvar = Mangled.is_this (get_name pvar)
@@ -201,12 +205,14 @@ let pp_ ~verbose f pv =
   | Abduced_ref_param (_, index, _) ->
       Mangled.pp f name ;
       if verbose then F.fprintf f "|abducedRefParam%d" index
-  | Global_var {translation_unit; template_args; is_constexpr; is_ice; is_pod} ->
+  | Global_var
+      {translation_unit; template_args; is_constexpr; is_ice; is_pod; is_nonnull_after_init} ->
       if verbose then
-        F.fprintf f "#GB<%a%s%s%s>$%a" pp_translation_unit translation_unit
+        F.fprintf f "#GB<%a%s%s%s%s>$%a" pp_translation_unit translation_unit
           (if is_constexpr then "|const" else "")
           (if is_ice then "|ice" else "")
           (if not is_pod then "|!pod" else "")
+          (if is_nonnull_after_init then "|nonnull-after-init" else "")
           Mangled.pp name
       else F.fprintf f "%s" (get_simplified_name pv) ;
       (Typ.pp_template_spec_info Pp.text) f template_args
@@ -260,7 +266,7 @@ let mk_callee (name : Mangled.t) (proc_name : Procname.t) : t =
 (** create a global variable with the given name *)
 let mk_global ?(is_constexpr = false) ?(is_ice = false) ?(is_pod = true) ?(is_static_local = false)
     ?(is_static_global = false) ?(is_constant_array = false) ?(is_const = false) ?translation_unit
-    ?(template_args = Typ.NoTemplate) (name : Mangled.t) : t =
+    ?(is_nonnull_after_init = false) ?(template_args = Typ.NoTemplate) (name : Mangled.t) : t =
   { pv_hash= name_hash name
   ; pv_name= name
   ; pv_tmp_id= None
@@ -275,7 +281,8 @@ let mk_global ?(is_constexpr = false) ?(is_ice = false) ?(is_pod = true) ?(is_st
         ; is_static_local
         ; is_static_global
         ; is_constant_array
-        ; is_const } }
+        ; is_const
+        ; is_nonnull_after_init } }
 
 
 (** create a fresh temporary variable local to procedure [pname]. for use in the frontends only! *)

@@ -130,6 +130,53 @@ let%expect_test "final annotation" =
       source_file: dummy.sil |}]
 
 
+let%expect_test "global non-null-after-init annotation reaches Pvar" =
+  let source =
+    {|
+          .source_language = "hack"
+          global sentinel: .global_nonnull_after_init *HackMixed
+          define read_sentinel() : *HackMixed {
+            #entry:
+              n0: *HackMixed = load &sentinel
+              ret n0
+          }
+          |}
+  in
+  let m = parse_module_ok source in
+  let cfg, _ = module_to_sil_exn m in
+  Cfg.iter_sorted cfg ~f:(fun pdesc ->
+      F.printf "%a" (Procdesc.pp_with_instrs ~print_types:true) pdesc ;
+      Procdesc.iter_instrs
+        (fun _node instr ->
+          match instr with
+          | Sil.Load {e= Exp.Lvar pvar} when Pvar.is_global pvar ->
+              F.printf "global nonnull-after-init: %b@\n" (Pvar.is_nonnull_after_init pvar)
+          | _ ->
+              () )
+        pdesc ) ;
+  [%expect
+    {|
+    { proc_name= read_sentinel
+    ; translation_unit= dummy.sil
+    ; formals= []
+    ; is_defined= true
+    ; loc= dummy.sil:4:17
+    ; locals= []
+    ; ret_type= HackMixed*
+    ; proc_id= read_sentinel#0 }
+        #n1:
+
+        #n4:
+          n$0=*&#GB<|nonnull-after-init>$sentinel:HackMixed* [line 6, column 14];
+          *&return:HackMixed*=n$0 [line 7, column 14];
+
+        #n2:
+
+
+        global nonnull-after-init: true
+    |}]
+
+
 let%expect_test "abstract class" =
   let source =
     {|

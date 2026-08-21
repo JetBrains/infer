@@ -1237,6 +1237,14 @@ module PulseTransferFunctions = struct
     if Typ.is_int typ then PulseArithmetic.and_is_int v astate else Sat (Ok astate)
 
 
+  let enforce_global_nonnull_after_init exp v astate =
+    match (exp : Exp.t) with
+    | Lvar pvar when Pvar.is_nonnull_after_init pvar ->
+        PulseArithmetic.prune_ne_zero v astate
+    | _ ->
+        Sat (Ok astate)
+
+
   let check_modified_before_destructor args call_exp astate astate_n =
     match ((call_exp : Exp.t), args) with
     | (Const (Cfun proc_name) | Closure {name= proc_name}), (Exp.Lvar pvar, _) :: _
@@ -1343,7 +1351,8 @@ module PulseTransferFunctions = struct
                    (astate, ValueOrigin.unknown addr_hist)
              in
              let rhs_addr = ValueOrigin.value rhs_vo in
-             and_is_int_if_integer_type typ rhs_addr astate
+             enforce_global_nonnull_after_init rhs_exp rhs_addr astate
+             >>== and_is_int_if_integer_type typ rhs_addr
              >>|| PulseOperations.hack_propagates_type_on_load tenv path loc rhs_exp rhs_addr
              >>|| PulseOperations.add_static_type_objc_swift_class tenv typ rhs_addr loc
              >>|| PulseOperations.write_load_id lhs_id rhs_vo )

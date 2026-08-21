@@ -58,6 +58,9 @@ val is_constant_array : t -> bool
 val is_const : t -> bool
 (** Check if the pvar has a const type *)
 
+val is_nonnull_after_init : t -> bool
+(** Check if a global's content is guaranteed non-null after language initialization *)
+
 val is_local : t -> bool
 (** Check if the pvar is a (non-static) local var *)
 
@@ -109,6 +112,7 @@ val mk_global :
   -> ?is_constant_array:bool
   -> ?is_const:bool
   -> ?translation_unit:SourceFile.t
+  -> ?is_nonnull_after_init:bool
   -> ?template_args:Typ.template_spec_info
   -> Mangled.t
   -> t

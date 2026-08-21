@@ -1,0 +1,53 @@
+// Copyright (c) Meta Platforms, Inc. and affiliates.
+//
+// This source code is licensed under the MIT license found in the
+// LICENSE file in the root directory of this source tree.
+
+.source_language = "go"
+
+type Cell = { value: int }
+
+global sentinel: .global_nonnull_after_init *Cell
+
+define get_sentinel() : *Cell {
+  #entry:
+    n0: *Cell = load &sentinel
+    ret n0
+}
+
+// Loading the marked global constrains its content, not the address of its
+// storage slot, to be non-null.
+define dereference_sentinel_ok() : int {
+  #entry:
+    n0: *Cell = load &sentinel
+    n1: int = load n0.Cell.value
+    ret n1
+}
+
+// The global precondition and its non-null constraint must cross a summary.
+define dereference_returned_sentinel_ok() : int {
+  #entry:
+    n0 = get_sentinel()
+    n1: int = load n0.Cell.value
+    ret n1
+}
+
+// Both the callee result and this load denote the content of the same global
+// slot.  The impossible inequality branch must stay dead across the call.
+define sentinel_equality_across_call_ok() : int {
+  local null_cell: *Cell
+  #entry:
+    store &null_cell <- null: *Cell
+    n0 = get_sentinel()
+    n1: *Cell = load &sentinel
+    n2 = __sil_eq(n0, n1)
+    jmp equal, different
+  #equal:
+    prune n2
+    ret 0
+  #different:
+    prune !n2
+    n3: *Cell = load &null_cell
+    n4: int = load n3.Cell.value
+    ret n4
+}

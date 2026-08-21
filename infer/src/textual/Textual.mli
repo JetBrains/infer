@@ -232,6 +232,8 @@ module Attr : sig
 
   val is_const : t -> bool
 
+  val is_global_nonnull_after_init : t -> bool
+
   val is_rust_reference : t -> bool
 
   val is_rust_raw : t -> bool

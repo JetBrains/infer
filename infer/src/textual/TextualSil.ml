@@ -564,9 +564,12 @@ end
 module GlobalBridge = struct
   open Global
 
-  let to_sil {name} =
+  let to_sil {name; attributes} =
     let mangled = VarName.to_mangled name in
-    SilPvar.mk_global mangled
+    let is_nonnull_after_init =
+      List.exists attributes ~f:Textual.Attr.is_global_nonnull_after_init
+    in
+    SilPvar.mk_global ~is_nonnull_after_init mangled
 end
 
 module FieldDeclBridge = struct
