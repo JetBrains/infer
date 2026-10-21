@@ -62,6 +62,17 @@ module IntCounter = struct
     [LogEntry.mk_count ~label:("backend_stats." ^ field_name) ~value:n]
 end
 
+module StringSetCounter = struct
+  type t = IString.Set.t
+
+  let init = IString.Set.empty
+
+  let merge = IString.Set.union
+
+  let to_log_entries ~field_name values =
+    [LogEntry.mk_count ~label:("backend_stats." ^ field_name) ~value:(IString.Set.cardinal values)]
+end
+
 module TimeCounter = struct
   include ExecutionDuration
 
@@ -241,6 +252,8 @@ type t =
   ; pulse_args_length_contradictions: IntCounter.t Atomic.t
   ; pulse_captured_vars_length_contradictions: IntCounter.t Atomic.t
   ; pulse_disjuncts_dropped: IntCounter.t Atomic.t
+  ; pulse_procedures_with_local_disjunct_drops: StringSetCounter.t Atomic.t
+  ; pulse_procedures_affected_by_disjunct_drops: StringSetCounter.t Atomic.t
   ; pulse_interrupted_loops: IntCounter.t Atomic.t
   ; pulse_unknown_calls: IntCounter.t Atomic.t
   ; pulse_unknown_calls_on_hack_resource: IntCounter.t Atomic.t
@@ -276,6 +289,9 @@ let pp fmt stats =
     pp_field (fun fmt v -> pp_value fmt (deserializer v)) fmt field
   in
   let pp_int_field fmt field = pp_field F.pp_print_int fmt field in
+  let pp_string_set_counter fmt field =
+    pp_field (fun fmt values -> F.pp_print_int fmt (IString.Set.cardinal values)) fmt field
+  in
   let pp_percent_field fmt field =
     pp_field (fun fmt p -> F.fprintf fmt "%.1f%%" (float_of_int p /. 10.)) fmt field
   in
@@ -317,8 +333,11 @@ let pp fmt stats =
     ~pulse_aliasing_contradictions:(pp_int_field fmt)
     ~pulse_args_length_contradictions:(pp_int_field fmt)
     ~pulse_captured_vars_length_contradictions:(pp_int_field fmt)
-    ~pulse_disjuncts_dropped:(pp_int_field fmt) ~pulse_interrupted_loops:(pp_int_field fmt)
-    ~pulse_unknown_calls:(pp_int_field fmt) ~pulse_unknown_calls_on_hack_resource:(pp_int_field fmt)
+    ~pulse_disjuncts_dropped:(pp_int_field fmt)
+    ~pulse_procedures_with_local_disjunct_drops:(pp_string_set_counter fmt)
+    ~pulse_procedures_affected_by_disjunct_drops:(pp_string_set_counter fmt)
+    ~pulse_interrupted_loops:(pp_int_field fmt) ~pulse_unknown_calls:(pp_int_field fmt)
+    ~pulse_unknown_calls_on_hack_resource:(pp_int_field fmt)
     ~pulse_swift_alloc_unknown_type:(pp_int_field fmt)
     ~pulse_summaries_contradictions:(pp_int_field fmt)
     ~pulse_summaries_count:(pp_pulse_summaries_count fmt)
@@ -344,6 +363,8 @@ let log_to_file
     ; pulse_args_length_contradictions
     ; pulse_captured_vars_length_contradictions
     ; pulse_disjuncts_dropped
+    ; pulse_procedures_with_local_disjunct_drops
+    ; pulse_procedures_affected_by_disjunct_drops
     ; pulse_interrupted_loops
     ; pulse_unknown_calls
     ; pulse_unknown_calls_on_hack_resource
@@ -368,6 +389,10 @@ let log_to_file
   F.fprintf fmt "pulse_captured_vars_length_contradictions: %d@\n"
     (Atomic.get pulse_captured_vars_length_contradictions) ;
   F.fprintf fmt "pulse_disjuncts_dropped: %d@\n" (Atomic.get pulse_disjuncts_dropped) ;
+  F.fprintf fmt "pulse_procedures_with_local_disjunct_drops: %d@\n"
+    (Atomic.get pulse_procedures_with_local_disjunct_drops |> IString.Set.cardinal) ;
+  F.fprintf fmt "pulse_procedures_affected_by_disjunct_drops: %d@\n"
+    (Atomic.get pulse_procedures_affected_by_disjunct_drops |> IString.Set.cardinal) ;
   F.fprintf fmt "pulse_interrupted_loops: %d@\n" (Atomic.get pulse_interrupted_loops) ;
   F.fprintf fmt "pulse_unknown_calls: %d@\n" (Atomic.get pulse_unknown_calls) ;
   F.fprintf fmt "pulse_unknown_calls_on_hack_resource: %d@\n"
@@ -490,6 +515,14 @@ let incr_pulse_captured_vars_length_contradictions () =
 
 
 let add_pulse_disjuncts_dropped n = add Fields.pulse_disjuncts_dropped n
+
+let record_pulse_procedure_with_local_disjunct_drops procname =
+  update_with Fields.pulse_procedures_with_local_disjunct_drops ~f:(IString.Set.add procname)
+
+
+let record_pulse_procedure_affected_by_disjunct_drops procname =
+  update_with Fields.pulse_procedures_affected_by_disjunct_drops ~f:(IString.Set.add procname)
+
 
 let add_pulse_interrupted_loops n = add Fields.pulse_interrupted_loops n
 

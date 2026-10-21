@@ -2023,8 +2023,14 @@ let analyze specialization ({InterproceduralAnalysis.tenv; proc_desc} as analysi
     if has_0_continue_program summary then Stats.incr_pulse_summaries_count_0_continue_program () ;
     if Config.pulse_log_summary_count then
       log_summary_count proc_name summary.PulseSummary.pre_post_list ;
-    (* needed to record the stats corresponding to the metadata *)
-    DisjunctiveAnalyzer.get_cfg_metadata () |> ignore ;
+    let proc_id = Procname.to_unique_id proc_name in
+    (* [get_cfg_metadata] also adds the precise number of locally dropped disjuncts to the global
+       counter. Keep the per-procedure predicate before that information is aggregated away. *)
+    let cfg_metadata = DisjunctiveAnalyzer.get_cfg_metadata () in
+    if AbstractInterpreter.DisjunctiveMetadata.has_dropped_disjuncts cfg_metadata then
+      Stats.record_pulse_procedure_with_local_disjunct_drops proc_id ;
+    if NonDisjDomain.Summary.has_dropped_disjuncts summary.PulseSummary.non_disj then
+      Stats.record_pulse_procedure_affected_by_disjunct_drops proc_id ;
     Some summary
   in
   let exn_sink_node_opt = Procdesc.get_exn_sink proc_desc in

@@ -37,6 +37,7 @@ let () =
         ; DifferentialTests.tests
         ; FileDiffTests.tests
         ; GradleTests.tests
+        ; GoProcnameTests.tests
         ; HilExpTests.tests
         ; IListTests.tests
         ; JavaClassNameTests.tests

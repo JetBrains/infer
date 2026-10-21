@@ -78,6 +78,8 @@ module DisjunctiveMetadata : sig
   type t
 
   val pp : F.formatter -> t -> unit
+
+  val has_dropped_disjuncts : t -> bool
 end
 
 (** In the disjunctive interpreter, the domain is a set of abstract states representing a

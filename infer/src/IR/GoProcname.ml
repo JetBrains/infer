@@ -99,27 +99,52 @@ let get_method = function
   | Builtin builtin ->
       show_builtin builtin
   | Regular (Function {Typ.c_name}) ->
-      QualifiedCppName.to_qual_string c_name
+      QualifiedCppName.extract_last c_name |> Option.value_map ~default:"" ~f:fst
   | Regular (Method {method_name}) ->
       method_name
 
 
-let regular_to_string = function
+let pp_package_member fmt qualified_name =
+  match QualifiedCppName.to_rev_list qualified_name with
+  | member :: package :: _ ->
+      F.fprintf fmt "%s.%s" package member
+  | [member] ->
+      F.pp_print_string fmt member
+  | [] ->
+      ()
+
+
+let pp_user_visible fmt = function
   | Function {Typ.c_name} ->
-      QualifiedCppName.to_qual_string c_name
+      pp_package_member fmt c_name
+  | Method {class_name; method_name} -> (
+    match QualifiedCppName.to_rev_list (Typ.Name.unqualified_name class_name) with
+    | receiver :: package :: _ ->
+        F.fprintf fmt "%s.%s.%s" package receiver method_name
+    | [receiver] ->
+        F.fprintf fmt "%s.%s" receiver method_name
+    | [] ->
+        F.pp_print_string fmt method_name )
+
+
+let pp_internal_name fmt = function
+  | Function {Typ.c_name} ->
+      QualifiedCppName.pp fmt c_name
   | Method {class_name; method_name} ->
-      F.asprintf "%s_%s" (Typ.Name.name class_name) method_name
+      F.fprintf fmt "%s_%s" (Typ.Name.name class_name) method_name
 
 
-(* Regular Go procnames must render exactly as [Procname.C] used to render them: go2sil names a
-   function [<mangled import path>::<name>], and that string is what shows up in reports. *)
 let pp verbosity fmt = function
   | Builtin builtin ->
       F.pp_print_string fmt (show_builtin builtin)
   | Regular regular -> (
-      let plain = regular_to_string regular in
-      match verbosity with
-      | Simple ->
-          F.fprintf fmt "%s()" plain
-      | Non_verbose | FullNameOnly | NameOnly | Verbose ->
-          F.pp_print_string fmt plain )
+    (* [Verbose], [FullNameOnly], and [NameOnly] are used for stable procedure identities and
+         matching. Reports use [Non_verbose], where an import-path basename is enough to make the
+         name recognizable without exposing Textual's [::]-mangling. *)
+    match verbosity with
+    | Non_verbose ->
+        pp_user_visible fmt regular
+    | Simple ->
+        F.fprintf fmt "%s()" (get_method (Regular regular))
+    | FullNameOnly | NameOnly | Verbose ->
+        pp_internal_name fmt regular )

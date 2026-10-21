@@ -42,6 +42,14 @@ val incr_pulse_captured_vars_length_contradictions : unit -> unit
 
 val add_pulse_disjuncts_dropped : int -> unit
 
+val record_pulse_procedure_with_local_disjunct_drops : string -> unit
+(** Record a procedure whose own analysis discarded at least one disjunct. Procedure names are
+    deduplicated across specializations and backend workers. *)
+
+val record_pulse_procedure_affected_by_disjunct_drops : string -> unit
+(** Record a procedure whose summary reports discarded disjuncts locally or transitively through a
+    callee. Procedure names are deduplicated across specializations and backend workers. *)
+
 val add_pulse_interrupted_loops : int -> unit
 
 val incr_pulse_unknown_calls : unit -> unit

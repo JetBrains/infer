@@ -184,6 +184,8 @@ module DisjunctiveMetadata = struct
       interrupted_loops
 
 
+  let has_dropped_disjuncts {dropped_disjuncts} = dropped_disjuncts > 0
+
   (* The metadata for a procedure is kept in a reference to make it easier to keep an accurate track
      of metadata since otherwise we would need to carry the metadata around the analysis while being
      careful to avoid double-counting. With a reference this is simpler to achieve as we can simply
