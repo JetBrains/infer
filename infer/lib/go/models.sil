@@ -4,7 +4,8 @@
 // error is nil. The table lives in nilfer (translate/contracts.go); this file
 // is a snapshot of it taken against the standard-library signatures of go1.27
 // (the release of the go command that loaded them; a patch release does not
-// change them).
+// change them). They are loaded for linux/amd64 on every platform, so the
+// file is the same wherever it is generated.
 //
 // Regenerate with:
 //   nilfer translate -emit-models > infer/lib/go/models.sil
@@ -132,7 +133,7 @@ type strings::Replacer = { }
 
 type syscall::Credential = { Uid: int; Gid: int; Groups: *$slice; NoSetGroups: int }
 
-type syscall::SysProcAttr = { Chroot: int; Credential: *syscall::Credential; Ptrace: int; Setsid: int; Setpgid: int; Setctty: int; Noctty: int; Ctty: int; Foreground: int; Pgid: int }
+type syscall::SysProcAttr = { Chroot: int; Credential: *syscall::Credential; Ptrace: int; Setsid: int; Setpgid: int; Setctty: int; Noctty: int; Ctty: int; Foreground: int; Pgid: int; Pdeathsig: int; Cloneflags: int; Unshareflags: int; UidMappings: *$slice; GidMappings: *$slice; GidMappingsEnableSetgroups: int; AmbientCaps: *$slice; UseCgroupFD: int; CgroupFD: int; PidFD: *int }
 
 type time::Location = { }
 
