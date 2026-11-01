@@ -114,24 +114,37 @@ let pp_package_member fmt qualified_name =
       ()
 
 
+(* nilfer names the class of a method by the receiver as Go writes it: [T] for a value receiver,
+   [T$ptr] for a pointer one, since Textual has no class for [*T]. Reports spell the latter the way
+   Go does: "pkg.(*T).M". *)
+let pp_receiver fmt receiver =
+  match String.chop_suffix receiver ~suffix:"$ptr" with
+  | Some named ->
+      F.fprintf fmt "(*%s)" named
+  | None ->
+      F.pp_print_string fmt receiver
+
+
 let pp_user_visible fmt = function
   | Function {Typ.c_name} ->
       pp_package_member fmt c_name
   | Method {class_name; method_name} -> (
     match QualifiedCppName.to_rev_list (Typ.Name.unqualified_name class_name) with
     | receiver :: package :: _ ->
-        F.fprintf fmt "%s.%s.%s" package receiver method_name
+        F.fprintf fmt "%s.%a.%s" package pp_receiver receiver method_name
     | [receiver] ->
-        F.fprintf fmt "%s.%s" receiver method_name
+        F.fprintf fmt "%a.%s" pp_receiver receiver method_name
     | [] ->
         F.pp_print_string fmt method_name )
 
 
+(* The id a procedure is stored under is its Textual name: a Textual identifier has no [.], so
+   joining class and method with one keeps the method [T.M] apart from a function [T_M]. *)
 let pp_internal_name fmt = function
   | Function {Typ.c_name} ->
       QualifiedCppName.pp fmt c_name
   | Method {class_name; method_name} ->
-      F.fprintf fmt "%s_%s" (Typ.Name.name class_name) method_name
+      F.fprintf fmt "%s.%s" (Typ.Name.name class_name) method_name
 
 
 let pp verbosity fmt = function

@@ -43,11 +43,38 @@ let test_method_name =
   let procname = Procname.make_go_method ~class_name ~method_name:"get" in
   assert_rendered ~verbosity:Non_verbose ~expected:"methods.Counter.get" procname ;
   assert_rendered ~verbosity:Simple ~expected:"get()" procname ;
-  assert_rendered ~verbosity:Verbose ~expected:"go2sil::testdata::deref::methods::Counter_get"
+  assert_rendered ~verbosity:Verbose ~expected:"go2sil::testdata::deref::methods::Counter.get"
     procname ;
-  assert_equal "go2sil::testdata::deref::methods::Counter_get" (Procname.to_unique_id procname) ;
+  assert_equal "go2sil::testdata::deref::methods::Counter.get" (Procname.to_unique_id procname) ;
   assert_described ~expected:"methods.Counter.get()" procname
 
 
+let test_pointer_method_name =
+  "pointer_method_name"
+  >:: fun _ ->
+  let class_name = Typ.Name.C.from_string "go2sil::testdata::deref::methods::Counter$ptr" in
+  let procname = Procname.make_go_method ~class_name ~method_name:"add" in
+  assert_rendered ~verbosity:Non_verbose ~expected:"methods.(*Counter).add" procname ;
+  assert_rendered ~verbosity:Simple ~expected:"add()" procname ;
+  assert_equal "go2sil::testdata::deref::methods::Counter$ptr.add" (Procname.to_unique_id procname) ;
+  assert_described ~expected:"methods.(*Counter).add()" procname
+
+
+(* The method [T.M] and the function [T_M] are two procedures with two ids. *)
+let test_method_and_function_ids_differ =
+  "method_and_function_ids_differ"
+  >:: fun _ ->
+  let class_name = Typ.Name.C.from_string "p::T" in
+  let method_ = Procname.make_go_method ~class_name ~method_name:"M" in
+  let function_ = Procname.make_go ~name:"p::T_M" in
+  assert_bool "ids must differ"
+    (not (String.equal (Procname.to_unique_id method_) (Procname.to_unique_id function_)))
+
+
 let tests =
-  "GoProcnameTests" >::: [test_function_name; test_standard_library_function_name; test_method_name]
+  "GoProcnameTests"
+  >::: [ test_function_name
+       ; test_standard_library_function_name
+       ; test_method_name
+       ; test_pointer_method_name
+       ; test_method_and_function_ids_differ ]
